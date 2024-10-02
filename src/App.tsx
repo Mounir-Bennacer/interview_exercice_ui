@@ -1,43 +1,32 @@
 import React, { useState, useEffect } from "react";
 import { Message } from "./types";
-import { fetchMessages, searchMessages, addTag } from "./services/api";
+import { fetchMessages, searchMessages } from "./services/api";
 import MessageList from "./components/MessageList";
-import TagInput from "./components/TagInput";
 import SearchBar from "./components/SearchBar";
+import { ApolloProvider } from "@apollo/client";
+import { client } from "./services/api";
 
 const App: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [selectedMessageId, setSelectedMessageId] = useState<string | null>(
-    null,
-  );
+  const [conversationId, setConversationId] = useState<string>("");
 
   useEffect((): void => {
-    fetchMessages().then(setMessages).catch(console.error);
-  }, []);
+    // You might want to adjust this to fetch messages for a specific conversation
+    if (conversationId) {
+      fetchMessages(conversationId).then(setMessages).catch(console.error);
+    }
+  }, [conversationId]);
 
   const handleSearch = async (tags: string): Promise<void> => {
+    if (!conversationId) {
+      console.error("Conversation ID is required");
+      return;
+    }
     try {
-      const searchedMessages = await searchMessages(tags);
+      const searchedMessages = await searchMessages(conversationId, tags);
       setMessages(searchedMessages);
     } catch (error) {
       console.error("Error searching messages:", error);
-    }
-  };
-
-  const handleAddTag = async (tag: string): Promise<void> => {
-    if (!selectedMessageId) return;
-
-    try {
-      const updatedMessage = await addTag(selectedMessageId, tag);
-      setMessages(
-        messages.map(
-          (msg: Message): Message =>
-            msg.id === updatedMessage.id ? updatedMessage : msg,
-        ),
-      );
-      setSelectedMessageId(null);
-    } catch (error) {
-      console.error("Error adding tag:", error);
     }
   };
 
@@ -49,13 +38,25 @@ const App: React.FC = () => {
           <h1 className="text-4xl font-bold mb-5 text-center text-gray-800">
             Chat Application
           </h1>
+          <input
+            type="text"
+            value={conversationId}
+            onChange={(e) => setConversationId(e.target.value)}
+            placeholder="Enter Conversation ID"
+            className="w-full px-3 py-2 mb-4 border rounded-md"
+          />
           <SearchBar onSearch={handleSearch} />
-          <MessageList messages={messages} onAddTag={setSelectedMessageId} />
-          {selectedMessageId && <TagInput onAddTag={handleAddTag} />}
+          <MessageList messages={messages} />
         </div>
       </div>
     </div>
   );
 };
 
-export default App;
+const AppWithApollo: React.FC = () => (
+  <ApolloProvider client={client}>
+    <App />
+  </ApolloProvider>
+);
+
+export default AppWithApollo;

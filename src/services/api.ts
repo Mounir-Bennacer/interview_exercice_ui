@@ -1,34 +1,58 @@
+import { ApolloClient, InMemoryCache, gql } from "@apollo/client";
 import { Message } from "../types";
 
-const API_URL = process.env.REACT_APP_API_URL;
+export const client = new ApolloClient({
+  uri: process.env.REACT_APP_API_URL || "http://localhost:3000/graphql",
+  cache: new InMemoryCache(),
+});
 
-export const fetchMessages = async (): Promise<Message[]> => {
-  const response = await fetch(`${API_URL}/messages`);
-  if (!response.ok) {
-    throw new Error("Failed to fetch messages");
+const GET_MESSAGES = gql`
+  query GetMessages($getMessageDto: GetMessageDto!) {
+    getChatConversationMessages(getMessageDto: $getMessageDto) {
+      messages {
+        id
+        text
+        sender {
+          id
+        }
+        tags
+      }
+    }
   }
-  return response.json();
-};
+`;
 
-export const searchMessages = async (tags: string): Promise<Message[]> => {
-  const response = await fetch(`${API_URL}/messages?tags=${tags}`);
-  if (!response.ok) {
-    throw new Error("Failed to search messages");
-  }
-  return response.json();
-};
-
-export const addTag = async (
-  messageId: string,
-  tag: string,
-): Promise<Message> => {
-  const response = await fetch(`${API_URL}/messages/${messageId}/tags`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ tags: [tag] }),
+export const fetchMessages = async (
+  conversationId: string,
+): Promise<Message[]> => {
+  const { data } = await client.query({
+    query: GET_MESSAGES,
+    variables: {
+      getMessageDto: {
+        conversationId,
+        limit: 50, // Adjust as needed
+      },
+    },
   });
-  if (!response.ok) {
-    throw new Error("Failed to add tag");
-  }
-  return response.json();
+  return data.getChatConversationMessages.messages;
+};
+
+export const searchMessages = async (
+  conversationId: string,
+  tags: string,
+): Promise<Message[]> => {
+  const { data } = await client.query({
+    query: GET_MESSAGES,
+    variables: {
+      getMessageDto: {
+        conversationId,
+        limit: 50, // Adjust as needed
+      },
+    },
+  });
+
+  // Filter messages by tags on the client side
+  const tagArray = tags.split(",").map((tag) => tag.trim().toLowerCase());
+  return data.getChatConversationMessages.messages.filter((message: any) =>
+    message.tags.some((tag: any) => tagArray.includes(tag.toLowerCase())),
+  );
 };

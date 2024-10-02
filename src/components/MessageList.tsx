@@ -4,13 +4,12 @@ import MessageItem from "./MessageItem";
 
 interface Props {
   messages: Message[];
-  onAddTag: (messageId: string) => void;
 }
 
-const MessageList: React.FC<Props> = ({ messages, onAddTag }) => (
+const MessageList: React.FC<Props> = ({ messages }: Props) => (
   <ul className="space-y-4">
-    {messages.map((message) => (
-      <MessageItem key={message.id} message={message} onAddTag={onAddTag} />
+    {messages.map((message: Message) => (
+      <MessageItem key={message.id} message={message} />
     ))}
   </ul>
 );

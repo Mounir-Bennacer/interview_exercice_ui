@@ -6,6 +6,8 @@ export interface User {
 export interface Message {
   id: string;
   text: string;
-  sender: User;
+  sender: {
+    id: string;
+  };
   tags: string[];
 }
